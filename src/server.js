@@ -10,6 +10,7 @@ const vitalsRoutes = require('./routes/vitals.routes');
 const deviceRoutes = require('./routes/device.routes');
 const assistantRoutes = require('./routes/assistant.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
+const pool = require('./config/db');
 
 const app = express();
 app.disable('x-powered-by');
@@ -17,6 +18,16 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+app.get('/debug/db-check', async (req, res) => {
+  try {
+    const [tables] = await pool.query('SHOW TABLES');
+    const [dbName] = await pool.query('SELECT DATABASE() AS db');
+    res.json({ connectedTo: dbName[0].db, tables });
+  } catch (err) {
+    res.status(500).json({ error: err.message, code: err.code });
+  }
+});
 
 app.use('/auth', authRoutes);
 app.use('/patients', patientRoutes);
@@ -47,13 +58,3 @@ app.use(helmet({
   hsts: { maxAge: 31536000, includeSubDomains: true }
 }));
 
-const pool = require('./config/db');
-app.get('/debug/db-check', async (req, res) => {
-  try {
-    const [tables] = await pool.query('SHOW TABLES');
-    const [dbName] = await pool.query('SELECT DATABASE() AS db');
-    res.json({ connectedTo: dbName[0].db, tables });
-  } catch (err) {
-    res.status(500).json({ error: err.message, code: err.code });
-  }
-});

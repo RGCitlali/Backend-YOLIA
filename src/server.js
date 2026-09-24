@@ -46,3 +46,14 @@ app.use(helmet({
   contentSecurityPolicy: { directives: { defaultSrc: ["'self'"] } },
   hsts: { maxAge: 31536000, includeSubDomains: true }
 }));
+
+const pool = require('./config/db');
+app.get('/debug/db-check', async (req, res) => {
+  try {
+    const [tables] = await pool.query('SHOW TABLES');
+    const [dbName] = await pool.query('SELECT DATABASE() AS db');
+    res.json({ connectedTo: dbName[0].db, tables });
+  } catch (err) {
+    res.status(500).json({ error: err.message, code: err.code });
+  }
+});

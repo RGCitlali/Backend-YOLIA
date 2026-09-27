@@ -51,7 +51,7 @@ async function ingestFromPhoneBridge(req, res) {
   const { patientId } = req.params;
   const {
     macAddress, accelerationG, angleX, angleY, isFall, eventType,
-    heartRate, spo2, temperatureC,
+    heartRate, spo2, temperatureC, systolicBp, diastolicBp,
   } = req.body;
 
   if (!['caregiver', 'elderly', 'admin'].includes(req.user.role)) {
@@ -95,12 +95,12 @@ async function ingestFromPhoneBridge(req, res) {
   }
 
   let vitalsSaved = false;
-  if (heartRate || spo2 || temperatureC) {
+  if (heartRate || spo2 || temperatureC || systolicBp || diastolicBp) {
     await pool.query(
       `INSERT INTO vitals_readings
-       (patient_id, heart_rate, spo2, temperature_c, source, recorded_at)
-       VALUES (?, ?, ?, ?, 'sensor', NOW())`,
-      [patientId, heartRate || null, spo2 || null, temperatureC || null]
+       (patient_id, heart_rate, spo2, temperature_c, systolic_bp, diastolic_bp, source, recorded_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'sensor', NOW())`,
+      [patientId, heartRate || null, spo2 || null, temperatureC || null, systolicBp || null, diastolicBp || null]
     );
     vitalsSaved = true;
   }

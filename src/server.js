@@ -9,8 +9,8 @@ const studyRoutes = require('./routes/study.routes');
 const vitalsRoutes = require('./routes/vitals.routes');
 const deviceRoutes = require('./routes/device.routes');
 const assistantRoutes = require('./routes/assistant.routes');
-const analyticsRoutes = require('./routes/analytics.routes');
 const mealRoutes = require('./routes/meal.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 const pool = require('./config/db');
 
 const app = express();
@@ -36,8 +36,8 @@ app.use('/', medicationRoutes);// expone /patients/:id/medications y /medication
 app.use('/', studyRoutes); // expone /patients/:id/studies y /studies/:id
 app.use('/', vitalsRoutes); // expone /patients/:id/vitals y /patients/:id/falls
 app.use('/', assistantRoutes); // expone /patients/:id/assistant/query y /assistant/logs
-app.use('/', analyticsRoutes); // expone /patients/:id/analytics/summary
 app.use('/', mealRoutes); // expone /patients/:id/meals
+app.use('/', analyticsRoutes); // expone /patients/:id/analytics/summary
 app.use('/', deviceRoutes); // expone /patients/:id/devices y /devices/ingest
 
 app.use((err, req, res, next) => {
@@ -49,10 +49,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`YOLIA backend escuchando en http://localhost:${PORT}`);
 });
-
-// app.listen(PORT, '127.0.0.1', () => {
-//   console.log(`YOLIA backend escuchando en http://127.0.0.1:${PORT}`);
-// });
 
 const helmet = require('helmet');
 app.use(helmet({

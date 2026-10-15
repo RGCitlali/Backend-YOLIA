@@ -13,6 +13,8 @@ const mealRoutes = require('./routes/meal.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const pool = require('./config/db');
 
+const searchRoutes = require('./routes/search.routes'); // BORRAR ESTO AL TERMINAR LA PRACTICA
+
 const app = express();
 app.disable('x-powered-by');
 app.use(cors());
@@ -39,6 +41,8 @@ app.use('/', assistantRoutes); // expone /patients/:id/assistant/query y /assist
 app.use('/', mealRoutes); // expone /patients/:id/meals
 app.use('/', analyticsRoutes); // expone /patients/:id/analytics/summary
 app.use('/', deviceRoutes); // expone /patients/:id/devices y /devices/ingest
+
+app.use('/', searchRoutes); // expone /patients/search y /patients/search-safe — BORRAR ESTO AL TERMINAR LA PRACTICA
 
 app.use((err, req, res, next) => {
   console.error(err);

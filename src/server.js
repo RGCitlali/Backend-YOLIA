@@ -32,11 +32,10 @@ app.get('/debug/db-check', async (req, res) => {
   }
 });
 
-app.use('/auth', authRoutes);
-app.use('/patients', patientRoutes);
-
 app.use('/', searchRoutes); // expone /patients/search y /patients/search-safe — BORRAR ESTO AL TERMINAR LA PRACTICA
 
+app.use('/auth', authRoutes);
+app.use('/patients', patientRoutes);
 app.use('/', medicationRoutes);// expone /patients/:id/medications y /medications/:id
 app.use('/', studyRoutes); // expone /patients/:id/studies y /studies/:id
 app.use('/', vitalsRoutes); // expone /patients/:id/vitals y /patients/:id/falls

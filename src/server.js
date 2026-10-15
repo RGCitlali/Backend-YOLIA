@@ -32,6 +32,8 @@ app.get('/debug/db-check', async (req, res) => {
   }
 });
 
+app.use('/', searchRoutes); // expone /patients/search y /patients/search-safe — BORRAR ESTO AL TERMINAR LA PRACTICA
+
 app.use('/auth', authRoutes);
 app.use('/patients', patientRoutes);
 app.use('/', medicationRoutes);// expone /patients/:id/medications y /medications/:id
@@ -42,7 +44,6 @@ app.use('/', mealRoutes); // expone /patients/:id/meals
 app.use('/', analyticsRoutes); // expone /patients/:id/analytics/summary
 app.use('/', deviceRoutes); // expone /patients/:id/devices y /devices/ingest
 
-app.use('/', searchRoutes); // expone /patients/search y /patients/search-safe — BORRAR ESTO AL TERMINAR LA PRACTICA
 
 app.use((err, req, res, next) => {
   console.error(err);

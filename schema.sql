@@ -1,19 +1,6 @@
--- ============================================================
--- YOLIA - Esquema de base de datos (MySQL 8+)
--- Este archivo es SOLO DE REFERENCIA para confirmar que coincide con
--- lo que ya tienes corriendo en tu WampServer. NO necesitas volver a
--- ejecutarlo si tu base de datos ya existe y funciona — hacerlo de
--- nuevo fallaría porque las tablas ya existen (a menos que quieras
--- recrear todo desde cero).
--- ============================================================
-
 CREATE DATABASE IF NOT EXISTS yolia_db
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE yolia_db;
-
--- ------------------------------------------------------------
--- 1. USUARIOS Y AUTENTICACIÓN
--- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS users (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -41,10 +28,6 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   INDEX idx_refresh_user (user_id)
 ) ENGINE=InnoDB;
 
--- ------------------------------------------------------------
--- 2. PERFIL CLÍNICO DEL ADULTO MAYOR
--- ------------------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS patients (
   id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id             INT UNSIGNED NOT NULL UNIQUE,
@@ -63,10 +46,6 @@ CREATE TABLE IF NOT EXISTS patients (
                                     ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
-
--- ------------------------------------------------------------
--- 3. RELACIONES N:M (paciente <-> cuidadores/médicos)
--- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS patient_caregivers (
   id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -91,10 +70,6 @@ CREATE TABLE IF NOT EXISTS patient_doctors (
   FOREIGN KEY (doctor_id)  REFERENCES users(id)     ON DELETE CASCADE,
   UNIQUE KEY uq_patient_doctor (patient_id, doctor_id)
 ) ENGINE=InnoDB;
-
--- ------------------------------------------------------------
--- 4. MEDICAMENTOS
--- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS medications (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -135,10 +110,6 @@ CREATE TABLE IF NOT EXISTS medication_intake_log (
   INDEX idx_intake_med_date (medication_id, scheduled_for)
 ) ENGINE=InnoDB;
 
--- ------------------------------------------------------------
--- 5. ESTUDIOS MÉDICOS
--- ------------------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS medical_studies (
   id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   patient_id    INT UNSIGNED NOT NULL,
@@ -156,12 +127,6 @@ CREATE TABLE IF NOT EXISTS medical_studies (
   INDEX idx_study_patient (patient_id)
 ) ENGINE=InnoDB;
 
--- ------------------------------------------------------------
--- 6. SIGNOS VITALES
--- IMPORTANTE: NO tiene columna hrv_ms — no hay ningún sensor en este
--- proyecto que mida variabilidad de la frecuencia cardiaca todavía.
--- ------------------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS vitals_readings (
   id             BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   patient_id     INT UNSIGNED NOT NULL,
@@ -176,10 +141,6 @@ CREATE TABLE IF NOT EXISTS vitals_readings (
   FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
   INDEX idx_vitals_patient_time (patient_id, recorded_at)
 ) ENGINE=InnoDB;
-
--- ------------------------------------------------------------
--- 7. DISPOSITIVOS (ESP32) Y EVENTOS DE CAÍDA
--- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS devices (
   id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -209,10 +170,6 @@ CREATE TABLE IF NOT EXISTS fall_events (
   INDEX idx_fall_patient_time (patient_id, detected_at)
 ) ENGINE=InnoDB;
 
--- ------------------------------------------------------------
--- 8. ASISTENTE DE VOZ (Claude API)
--- ------------------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS ai_assistant_logs (
   id             BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   patient_id     INT UNSIGNED NOT NULL,
@@ -228,10 +185,6 @@ CREATE TABLE IF NOT EXISTS ai_assistant_logs (
   FOREIGN KEY (spoken_by)  REFERENCES users(id),
   INDEX idx_ai_log_patient_time (patient_id, created_at)
 ) ENGINE=InnoDB;
-
--- ------------------------------------------------------------
--- 9. AUDITORÍA GENERAL
--- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS audit_log (
   id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

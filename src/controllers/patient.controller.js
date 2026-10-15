@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { userCanAccessPatient } = require('../utils/access');
+const { validateFullName, validateAddress, validatePhone } = require('../utils/validators');
 
 async function selfAssignToPatient(req, res) {
   if (req.user.role !== 'caregiver') {
@@ -84,6 +85,21 @@ async function updatePatient(req, res) {
   }
   const allowed = await userCanAccessPatient(req.user, patientId);
   if (!allowed) return res.status(403).json({ error: 'Sin acceso a este paciente' });
+
+  // --- Filtrado de entrada de datos ---
+  const checks = [
+    ['address', validateAddress],
+    ['emergencyContactName', validateFullName],
+    ['emergencyContactPhone', validatePhone],
+  ];
+  for (const [key, fn] of checks) {
+    if (req.body[key] !== undefined) {
+      const r = fn(req.body[key], { required: false });
+      if (!r.ok) return res.status(400).json({ error: r.error });
+      req.body[key] = r.value;
+    }
+  }
+  // ------------------------------------
 
   const fields = [
     'birth_date', 'sex', 'blood_type', 'height_cm', 'weight_kg', 'address',

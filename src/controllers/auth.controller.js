@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/db');
+const { validateFullName, validatePhone } = require('../utils/validators');
 require('dotenv').config();
 
 async function register(req, res) {
@@ -15,6 +16,13 @@ async function register(req, res) {
       return res.status(400).json({ error: 'Rol inválido' });
     }
 
+    // --- Filtrado de entrada de datos ---
+    const nameCheck = validateFullName(fullName);
+    if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
+    const phoneCheck = validatePhone(phone, { required: false });
+    if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
+    // ------------------------------------
+
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Ese correo ya está registrado' });
@@ -23,7 +31,7 @@ async function register(req, res) {
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
       'INSERT INTO users (full_name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?)',
-      [fullName, email, passwordHash, role, phone || null]
+      [nameCheck.value, email, passwordHash, role, phoneCheck.value || null]
     );
 
     const userId = result.insertId;
@@ -32,7 +40,7 @@ async function register(req, res) {
       await pool.query('INSERT INTO patients (user_id) VALUES (?)', [userId]);
     }
 
-    return res.status(201).json({ id: userId, fullName, email, role });
+    return res.status(201).json({ id: userId, fullName: nameCheck.value, email, role });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error al registrar usuario' });

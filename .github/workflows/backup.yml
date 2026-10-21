@@ -33,6 +33,14 @@ jobs:
                      "${{ secrets.RAILWAY_DB_NAME }}" > backup.sql
           gzip backup.sql
 
+      - name: Diagnóstico de bases de datos (temporal)
+        run: |
+          mysql -h "${{ secrets.RAILWAY_DB_HOST }}" \
+                -P "${{ secrets.RAILWAY_DB_PORT }}" \
+                -u "${{ secrets.RAILWAY_DB_USER }}" \
+                -p"${{ secrets.RAILWAY_DB_PASSWORD }}" \
+                -e "SHOW DATABASES;"
+
       - name: Prueba automática de restauración
         run: |
           gunzip -k backup.sql.gz

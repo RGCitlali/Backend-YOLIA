@@ -53,7 +53,7 @@ jobs:
         env:
           GH_PAT: ${{ secrets.BACKUP_REPO_TOKEN }}
         run: |
-          git clone https://x-access-token:${GH_PAT}@github.com/RGCitlali/yolia-backups.git repo
+          git clone https://x-access-token:${GH_PAT}@github.com/RGCitlali/yolia-backup.git repo
           DATE=$(date +%Y-%m-%d)
           mkdir -p repo/backups
           cp backup.sql.gz.gpg repo/backups/yolia-${DATE}.sql.gz.gpg

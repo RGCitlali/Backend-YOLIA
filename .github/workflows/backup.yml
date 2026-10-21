@@ -1,0 +1,67 @@
+name: Respaldo YOLIA
+
+on:
+  schedule:
+    - cron: '0 8 * * *'   # todos los días a las 08:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    services:
+      restore_test_db:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: testpass
+          MYSQL_DATABASE: yolia_restore_test
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptestpass"
+          --health-interval=5s --health-timeout=5s --health-retries=15
+
+    steps:
+      - name: Instalar cliente MySQL y GPG
+        run: sudo apt-get update -y && sudo apt-get install -y mysql-client gnupg
+
+      - name: Generar el respaldo (mysqldump)
+        run: |
+          mysqldump -h "${{ secrets.RAILWAY_DB_HOST }}" \
+                     -P "${{ secrets.RAILWAY_DB_PORT }}" \
+                     -u "${{ secrets.RAILWAY_DB_USER }}" \
+                     -p"${{ secrets.RAILWAY_DB_PASSWORD }}" \
+                     "${{ secrets.RAILWAY_DB_NAME }}" > backup.sql
+          gzip backup.sql
+
+      - name: Prueba automática de restauración
+        run: |
+          gunzip -k backup.sql.gz
+          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass yolia_restore_test < backup.sql
+          mysql -h 127.0.0.1 -P 3307 -u root -ptestpass yolia_restore_test \
+            -e "SELECT COUNT(*) AS usuarios_restaurados FROM users;"
+
+      - name: Cifrar el respaldo
+        run: |
+          gpg --batch --yes --passphrase "${{ secrets.BACKUP_GPG_PASSPHRASE }}" \
+              --symmetric --cipher-algo AES256 backup.sql.gz
+
+      - name: Calcular hash de integridad
+        run: sha256sum backup.sql.gz.gpg > backup.sql.gz.gpg.sha256
+
+      - name: Subir al repositorio de respaldos
+        env:
+          GH_PAT: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GH_PAT}@github.com/RGCitlali/yolia-backup.git repo
+          DATE=$(date +%Y-%m-%d)
+          mkdir -p repo/backups
+          cp backup.sql.gz.gpg repo/backups/yolia-${DATE}.sql.gz.gpg
+          cp backup.sql.gz.gpg.sha256 repo/backups/yolia-${DATE}.sql.gz.gpg.sha256
+          cd repo
+          ls -1t backups/*.gpg | tail -n +15 | xargs -r rm --
+          ls -1t backups/*.sha256 | tail -n +15 | xargs -r rm --
+          git config user.email "backups@yolia.local"
+          git config user.name "YOLIA Backup Bot"
+          git add backups/
+          git commit -m "Respaldo automatico ${DATE}" || echo "Sin cambios que respaldar"
+          git push

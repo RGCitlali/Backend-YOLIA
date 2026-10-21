@@ -2,7 +2,7 @@ name: Respaldo YOLIA
 
 on:
   schedule:
-    - cron: '0 8 * * *'   # todos los días a las 08:00 UTC
+    - cron: '35 15 * * *'   # todos los días a las 08:00 UTC
   workflow_dispatch:
 
 jobs:

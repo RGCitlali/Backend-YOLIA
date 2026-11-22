@@ -107,6 +107,26 @@ async function getPatientPhoto(req, res) {
   }
 }
 
+// Foto de un médico que atiende al paciente (solo si quien pregunta tiene acceso al paciente).
+async function getPatientDoctorPhoto(req, res) {
+  try {
+    const { patientId, doctorId } = req.params;
+    const allowed = await userCanAccessPatient(req.user, patientId);
+    if (!allowed) return res.status(403).json({ error: 'Sin acceso a este paciente' });
+
+    const [link] = await pool.query(
+      'SELECT id FROM patient_doctors WHERE patient_id = ? AND doctor_id = ?',
+      [patientId, doctorId]
+    );
+    if (!link.length) return res.status(404).json({ error: 'Médico no asignado a este paciente' });
+
+    await sendPhoto(res, doctorId);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
 async function setPatientPhoto(req, res) {
   try {
     // Pueden cambiarla el cuidador vinculado y el propio paciente (o un administrador).
@@ -122,4 +142,6 @@ async function setPatientPhoto(req, res) {
   }
 }
 
-module.exports = { getMyPhoto, setMyPhoto, getPatientPhoto, setPatientPhoto };
+module.exports = {
+  getMyPhoto, setMyPhoto, getPatientPhoto, setPatientPhoto, getPatientDoctorPhoto,
+};

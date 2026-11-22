@@ -3,13 +3,14 @@ const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const {
   getPatient, updatePatient, assignCaregiver, assignDoctor, listMyPatients,
-  selfAssignToPatient,
+  selfAssignToPatient, listPatientDoctors,
 } = require('../controllers/patient.controller');
 
 router.use(authenticate);
 router.get('/mine', listMyPatients);
 router.post('/self-assign', selfAssignToPatient);
 
+router.get('/:patientId/doctors', listPatientDoctors);
 router.get('/:patientId', getPatient);
 router.put('/:patientId', updatePatient);
 router.post('/:patientId/caregivers', assignCaregiver);

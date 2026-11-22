@@ -16,12 +16,10 @@ async function register(req, res) {
       return res.status(400).json({ error: 'Rol inválido' });
     }
 
-    // --- Filtrado de entrada de datos ---
     const nameCheck = validateFullName(fullName);
     if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
     const phoneCheck = validatePhone(phone, { required: false });
     if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
-    // ------------------------------------
 
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existing.length > 0) {

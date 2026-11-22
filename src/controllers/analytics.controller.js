@@ -1,20 +1,6 @@
 const pool = require('../config/db');
 const { userCanAccessPatient } = require('../utils/access');
 
-// ------------------------------------------------------------------
-// Analítica descriptiva basada en reglas (NO es machine learning ni
-// predicción de IA — es honesto llamarla así). Calcula estadísticas
-// reales a partir de lo que hay en la base de datos y aplica umbrales
-// clínicos generales para marcar cada indicador como normal o de
-// atención. Es la base sobre la que después se puede construir un
-// modelo de analítica avanzada (ver README_ANALITICA.md para el plan
-// de evolución hacia un modelo dimensional tipo copo de nieve).
-//
-// NOTA: no se usa hrv_ms (variabilidad de la frecuencia cardiaca) en
-// ningún cálculo — no hay ningún sensor en este proyecto que la mida
-// todavía, así que incluirla habría sido mostrar un dato inventado.
-// ------------------------------------------------------------------
-
 const THRESHOLDS = {
   heartRateLow: 50,
   heartRateHigh: 120,
@@ -22,7 +8,7 @@ const THRESHOLDS = {
   systolicHigh: 140,
   systolicLow: 90,
   temperatureFever: 37.5,
-  adherenceWarning: 80, // % por debajo del cual se marca como atención
+  adherenceWarning: 80, 
 };
 
 function trendDirection(recent, prior) {
@@ -38,7 +24,6 @@ async function getSummary(req, res) {
   const allowed = await userCanAccessPatient(req.user, patientId);
   if (!allowed) return res.status(403).json({ error: 'Sin acceso a este paciente' });
 
-  // ---------- 1. Adherencia a medicamentos (últimos 30 días) ----------
   const [medRows] = await pool.query(
     `SELECT m.id, m.name,
        SUM(CASE WHEN l.taken = 1 THEN 1 ELSE 0 END) AS taken_count,
@@ -59,7 +44,6 @@ async function getSummary(req, res) {
     adherencePercent: m.total_count > 0 ? Math.round((m.taken_count / m.total_count) * 100) : null,
   }));
 
-  // ---------- 2. Tendencias de signos vitales (7 días vs 7 días previos) ----------
   const [[vitalsRow]] = await pool.query(
     `SELECT
        AVG(CASE WHEN recorded_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN heart_rate END) AS hr_recent,
@@ -123,7 +107,6 @@ async function getSummary(req, res) {
     },
   ];
 
-  // ---------- 3. Caídas (últimos 30 días vs 30 días previos) ----------
   const [[fallsRow]] = await pool.query(
     `SELECT
        SUM(CASE WHEN detected_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS last30,
@@ -139,7 +122,6 @@ async function getSummary(req, res) {
     increased: (fallsRow.last30 || 0) > (fallsRow.prior30 || 0),
   };
 
-  // ---------- 4. Nivel de riesgo global (conteo simple de banderas) ----------
   let riskPoints = 0;
   vitalsTrends.forEach((v) => { if (v.flag === 'warning') riskPoints++; });
   if (fallsSummary.last30Days > 0) riskPoints++;

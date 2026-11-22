@@ -6,7 +6,7 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 async function listMeals(req, res) {
   try {
     const { patientId } = req.params;
-    const { date } = req.query; // formato 'YYYY-MM-DD'
+    const { date } = req.query; 
     if (!date) {
       return res.status(400).json({ error: 'Falta el parámetro date (YYYY-MM-DD)' });
     }

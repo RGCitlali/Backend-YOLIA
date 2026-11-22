@@ -2,7 +2,7 @@ name: Respaldo YOLIA
 
 on:
   schedule:
-    - cron: '35 15 * * *'   # ajusta a la hora UTC que prefieras
+    - cron: '35 15 * * *' 
   workflow_dispatch:
 
 jobs:

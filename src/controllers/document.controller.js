@@ -1,6 +1,9 @@
+// 
+
 const multer = require('multer');
 const pool = require('../config/db');
 const { userCanAccessPatient } = require('../utils/access');
+const { makeThumbnail } = require('../utils/imageTools');
 
 // Límite por archivo (PDF / PNG / JPG). Debe ser menor que max_allowed_packet de MySQL.
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -120,13 +123,16 @@ async function createDocument(req, res) {
         requestedByName = req.user.fullName || '';
       }
 
+      // Vista previa (JPEG). Si no se puede generar, el documento se guarda igual.
+      const thumb = await makeThumbnail(req.file.buffer, type.mime);
+
       // execute() envía el archivo en binario; query() lo convertiría a hexadecimal
       // y duplicaría su tamaño.
       const [result] = await pool.execute(
         `INSERT INTO patient_documents
            (patient_id, uploaded_by, title, document_date, requested_by_name, description,
-            file_name, mime_type, file_size, file_data)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            file_name, mime_type, file_size, file_data, thumb_data)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           patientId,
           req.user.id,
@@ -138,6 +144,7 @@ async function createDocument(req, res) {
           type.mime,
           req.file.size,
           req.file.buffer,
+          thumb,
         ]
       );
 
@@ -178,6 +185,45 @@ async function downloadDocument(req, res) {
   }
 }
 
+async function getThumbnail(req, res) {
+  try {
+    const { documentId } = req.params;
+    const [rows] = await pool.query(
+      'SELECT patient_id, mime_type, thumb_data FROM patient_documents WHERE id = ?',
+      [documentId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Documento no encontrado' });
+
+    const doc = rows[0];
+    const allowed = await userCanAccessPatient(req.user, doc.patient_id);
+    if (!allowed) return res.status(403).json({ error: 'Sin acceso a este documento' });
+
+    let thumb = doc.thumb_data;
+    if (!thumb) {
+      // Documentos subidos antes de existir las vistas previas: se generan al pedirlas
+      // por primera vez y se guardan.
+      const [files] = await pool.query(
+        'SELECT file_data FROM patient_documents WHERE id = ?',
+        [documentId]
+      );
+      thumb = files.length ? await makeThumbnail(files[0].file_data, doc.mime_type) : null;
+      if (thumb) {
+        await pool.execute('UPDATE patient_documents SET thumb_data = ? WHERE id = ?', [thumb, documentId]);
+      }
+    }
+    if (!thumb) return res.status(404).json({ error: 'Sin vista previa' });
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Length', thumb.length);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.end(thumb);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
 async function deleteDocument(req, res) {
   try {
     const { documentId } = req.params;
@@ -202,4 +248,6 @@ async function deleteDocument(req, res) {
   }
 }
 
-module.exports = { listDocuments, createDocument, downloadDocument, deleteDocument };
+module.exports = {
+  listDocuments, createDocument, downloadDocument, getThumbnail, deleteDocument,
+};
